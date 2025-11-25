@@ -1,13 +1,10 @@
-// lib/services/notification_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:permission_handler/permission_handler.dart';
 
 class NotificationService {
-  // Singleton pattern
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
@@ -17,22 +14,18 @@ class NotificationService {
   
   bool _isInitialized = false;
 
-  /// Initialize notification service
   Future<void> initNotifications() async {
     if (_isInitialized) {
       debugPrint('Notification service already initialized');
       return;
     }
 
-    // Initialize timezone
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
-    // Android settings
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // iOS settings
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -45,20 +38,17 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
 
-    // Initialize with callback
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
-    // Request permissions
     await _requestPermissions();
 
     _isInitialized = true;
     debugPrint('✅ Notification service initialized successfully');
   }
 
-  /// Request notification permissions
   Future<bool> _requestPermissions() async {
     if (defaultTargetPlatform == TargetPlatform.android) {
       final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
@@ -78,14 +68,10 @@ class NotificationService {
     return false;
   }
 
-  /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
     debugPrint('📲 Notification tapped with payload: ${response.payload}');
-    // TODO: Navigate to specific screen based on payload
-    // Example: if (response.payload?.startsWith('booking_')) { navigate to booking detail }
   }
 
-  /// Show instant notification
   Future<void> showInstantNotification({
     required int id,
     required String title,
@@ -93,16 +79,16 @@ class NotificationService {
     String? payload,
   }) async {
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'instant_channel',
-      'Instant Notifications',
-      channelDescription: 'Immediate notifications for important updates',
+      'booking_reminder_channel',
+      'Booking Reminders',
+      channelDescription: 'Notifications for upcoming grooming appointments',
       importance: Importance.high,
       priority: Priority.high,
-      showWhen: true,
       icon: '@mipmap/ic_launcher',
       color: Color(0xFFE17055),
       playSound: true,
       enableVibration: true,
+      ticker: 'Grooming Reminder',
     );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -130,7 +116,6 @@ class NotificationService {
     }
   }
 
-  /// Schedule notification at specific time
   Future<void> scheduleNotification({
     required int id,
     required String title,
@@ -138,7 +123,6 @@ class NotificationService {
     required DateTime scheduledTime,
     String? payload,
   }) async {
-    // Validate scheduled time
     if (scheduledTime.isBefore(DateTime.now())) {
       debugPrint('⚠️ Scheduled time is in the past, notification not scheduled (ID: $id)');
       return;
@@ -186,14 +170,12 @@ class NotificationService {
     }
   }
 
-  /// Schedule booking reminders (24h, 2h, 30min before)
   Future<void> scheduleBookingReminders({
     required int bookingId,
     required String petName,
     required String salonName,
     required DateTime bookingTime,
   }) async {
-    // Reminder 24 hours before
     final reminder24h = bookingTime.subtract(const Duration(hours: 24));
     if (reminder24h.isAfter(DateTime.now())) {
       await scheduleNotification(
@@ -205,7 +187,6 @@ class NotificationService {
       );
     }
 
-    // Reminder 2 hours before
     final reminder2h = bookingTime.subtract(const Duration(hours: 2));
     if (reminder2h.isAfter(DateTime.now())) {
       await scheduleNotification(
@@ -217,7 +198,6 @@ class NotificationService {
       );
     }
 
-    // Reminder 30 minutes before
     final reminder30m = bookingTime.subtract(const Duration(minutes: 30));
     if (reminder30m.isAfter(DateTime.now())) {
       await scheduleNotification(
@@ -232,7 +212,6 @@ class NotificationService {
     debugPrint('📅 All booking reminders scheduled for booking ID: $bookingId');
   }
 
-  /// Show booking confirmation notification
   Future<void> showBookingConfirmation({
     required String petName,
     required String salonName,
@@ -246,7 +225,6 @@ class NotificationService {
     );
   }
 
-  /// Show booking cancellation notification
   Future<void> showBookingCancellation({
     required String petName,
     required String salonName,
@@ -259,7 +237,6 @@ class NotificationService {
     );
   }
 
-  /// Show payment success notification
   Future<void> showPaymentSuccess({
     required String petName,
     required String amount,
@@ -272,7 +249,6 @@ class NotificationService {
     );
   }
 
-  /// Cancel specific notification
   Future<void> cancelNotification(int id) async {
     try {
       await flutterLocalNotificationsPlugin.cancel(id);
@@ -282,15 +258,13 @@ class NotificationService {
     }
   }
 
-  /// Cancel all booking reminders for specific booking
   Future<void> cancelBookingReminders(int bookingId) async {
-    await cancelNotification(bookingId * 10 + 1); // 24h reminder
-    await cancelNotification(bookingId * 10 + 2); // 2h reminder
-    await cancelNotification(bookingId * 10 + 3); // 30m reminder
+    await cancelNotification(bookingId * 10 + 1);
+    await cancelNotification(bookingId * 10 + 2);
+    await cancelNotification(bookingId * 10 + 3);
     debugPrint('🗑️ All reminders cancelled for booking ID: $bookingId');
   }
 
-  /// Cancel all notifications
   Future<void> cancelAllNotifications() async {
     try {
       await flutterLocalNotificationsPlugin.cancelAll();
@@ -300,28 +274,24 @@ class NotificationService {
     }
   }
 
-  /// Get pending notifications (for debugging)
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
     final pending = await flutterLocalNotificationsPlugin.pendingNotificationRequests();
     debugPrint('📋 Pending notifications: ${pending.length}');
     for (var notif in pending) {
-      debugPrint('  - ID: ${notif.id}, Title: ${notif.title}');
+      debugPrint('  - ID: ${notif.id}, Title: ${notif.title}');
     }
     return pending;
   }
 
-  /// Format time helper (HH:mm)
   String _formatTime(DateTime dateTime) {
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  /// Format date helper (dd MMM yyyy, HH:mm)
   String _formatDate(DateTime dateTime) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year}, ${_formatTime(dateTime)}';
   }
 
-  /// Format full datetime for logging
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${_formatTime(dateTime)}';
   }

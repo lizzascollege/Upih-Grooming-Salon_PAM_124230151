@@ -26,11 +26,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   final Box<PetModel> _petBox = Hive.box<PetModel>('myPetsBox');
   List<PetModel> _myPets = [];
 
-  // NEW: Currency & Timezone
   String _selectedCurrency = 'IDR';
   String _selectedTimezone = 'WIB';
 
-  // NEW: Currency conversion rates (base: IDR)
   final Map<String, Map<String, dynamic>> _currencies = {
     'IDR': {'symbol': 'Rp', 'rate': 1.0},
     'USD': {'symbol': '\$', 'rate': 0.000063},
@@ -40,7 +38,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     'SAR': {'symbol': '﷼', 'rate': 0.00024},
   };
 
-  // NEW: Timezone offsets from WIB (UTC+7)
   final Map<String, Map<String, dynamic>> _timezones = {
     'WIB': {'offset': 0, 'utc': 7},
     'WITA': {'offset': 1, 'utc': 8},
@@ -59,10 +56,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
-  String _getConvertedPrice() {
+  double _getConvertedPriceValue() {
     final basePrice = widget.service['price'] ?? 0;
     final rate = _currencies[_selectedCurrency]!['rate'] as double;
-    final convertedPrice = basePrice * rate;
+    return basePrice * rate;
+  }
+
+  String _getConvertedPrice() {
+    final convertedPrice = _getConvertedPriceValue();
     final symbol = _currencies[_selectedCurrency]!['symbol'];
 
     if (_selectedCurrency == 'IDR') {
@@ -72,6 +73,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     } else {
       return '$symbol${NumberFormat('#,##0.00').format(convertedPrice)}';
     }
+  }
+
+  DateTime _getConvertedBookingTime() {
+    if (_selectedDate == null || _selectedTime == null) {
+      return DateTime.now();
+    }
+    
+    final wibDateTime = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _selectedTime!.hour,
+      _selectedTime!.minute,
+    );
+    
+    final wibOffsetHours = _timezones['WIB']!['utc'] as int;
+    final targetOffsetHours = _timezones[_selectedTimezone]!['utc'] as int;
+    
+    final utcDateTime = wibDateTime.subtract(Duration(hours: wibOffsetHours));
+    
+    final targetDateTime = utcDateTime.add(Duration(hours: targetOffsetHours));
+    
+    return targetDateTime;
   }
 
   String _getConvertedTime() {
@@ -286,7 +310,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Service Info Card
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -319,7 +342,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               SizedBox(height: 24),
 
-              // Price with Currency Converter
               Text("Price", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               _buildInfoCard(
@@ -333,7 +355,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
 
-              // Pet Selection
               Text("Select Pet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               _myPets.isEmpty
@@ -370,7 +391,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     ),
               SizedBox(height: 24),
 
-              // Date Selection
               Text("Select Date", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               _buildInfoCard(
@@ -380,7 +400,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 onTap: _pickDate,
               ),
 
-              // Time Selection with Timezone
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -417,7 +436,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               SizedBox(height: 16),
 
-              // Proceed Button
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -425,14 +443,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   onPressed: (_selectedDate == null || _selectedTime == null || _selectedPet == null)
                       ? null
                       : () {
+                          
+                          Map<String, dynamic> convertedService = Map.from(widget.service);
+                          
+                          convertedService['price'] = _getConvertedPriceValue();
+                          
+                          convertedService['formatted_price'] = _getConvertedPrice();
+                          
+                          convertedService['currency_symbol'] = _currencies[_selectedCurrency]!['symbol'];
+                          convertedService['currency_code'] = _selectedCurrency;
+
+                          DateTime convertedBookingTime = _getConvertedBookingTime();
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => PaymentScreen(
                                 salon: widget.salon,
-                                service: widget.service,
+                                service: convertedService, 
                                 pet: _selectedPet!,
-                                bookingTime: DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, _selectedTime!.hour, _selectedTime!.minute),
+                                bookingTime: convertedBookingTime,
+                                bookingTimezone: _selectedTimezone,
                               ),
                             ),
                           );

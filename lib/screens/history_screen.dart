@@ -88,6 +88,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
             itemBuilder: (context, index) {
               final booking = bookings[index];
               final statusInfo = _getBookingStatus(booking['status'] ?? 'Pending');
+              
+              String displayPrice;
+              if (booking['display_price'] != null) {
+                displayPrice = booking['display_price'];
+              } else {
+                final dynamic rawPrice = booking['total_price'];
+                num priceAsNum = 0;
+                if (rawPrice is num) {
+                  priceAsNum = rawPrice;
+                } else if (rawPrice is String) {
+                  priceAsNum = num.tryParse(rawPrice) ?? 0;
+                }
+                displayPrice = priceFormat.format(priceAsNum);
+              }
+
               return Card(
                 color: Colors.white,
                 elevation: 1.0,
@@ -162,7 +177,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               style: TextStyle(color: AppColors.textDark, fontSize: 13),
                             ),
                             Text(
-                              priceFormat.format(booking['total_price'] ?? 0),
+                              displayPrice,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primary

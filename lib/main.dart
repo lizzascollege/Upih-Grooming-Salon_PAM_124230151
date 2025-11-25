@@ -11,10 +11,27 @@ import 'package:upih_pet_grooming/services/auth_service.dart';
 import 'package:upih_pet_grooming/services/notification_service.dart';
 import 'package:upih_pet_grooming/utils/app_colors.dart';
 import 'package:upih_pet_grooming/utils/route_observer.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    var status = await Permission.notification.status;
+    if (status.isDenied || status.isPermanentlyDenied) {
+      debugPrint('🚨 Meminta izin notifikasi...');
+      await Permission.notification.request();
+    }
+    // Cek status setelah request (Opsional, untuk debug)
+    status = await Permission.notification.status;
+    if (status.isGranted) {
+      debugPrint('✅ Izin Notifikasi Diberikan!');
+    } else {
+      debugPrint('❌ Izin Notifikasi Ditolak atau Dibatalkan. Status: $status');
+    }
+  } catch (e) {
+    debugPrint('⚠️ Error saat meminta izin notifikasi: $e');
+  }
 
   await Supabase.initialize(
     url: 'https://dozzwqcxrwzvgnlooyow.supabase.co',

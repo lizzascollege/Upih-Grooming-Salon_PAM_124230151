@@ -1,6 +1,5 @@
 // lib/services/api_service.dart
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -124,25 +123,40 @@ class ApiService {
 
   Future<String?> uploadProfileImage(XFile imageFile) async {
     try {
-      final userId = _supabase.auth.currentUser!.id;
-      final fileExt = imageFile.path.split('.').last;
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception("User belum login");
+      }
+
+      // Ambil bytes data gambar (Universal: Web & Mobile bisa baca bytes)
+      final bytes = await imageFile.readAsBytes();
+
+      // Ambil ekstensi file
+      final fileExt = imageFile.name.split('.').last;
       final fileName = '$userId/profile.$fileExt';
       
-      final file = File(imageFile.path);
-      
+      // Upload menggunakan uploadBinary (Bukan upload biasa)
       await _supabase.storage
           .from('profile_images') 
-          .upload(fileName, file,
-              fileOptions: const FileOptions(cacheControl: '3600', upsert: true));
+          .uploadBinary(
+            fileName, 
+            bytes,
+            fileOptions: FileOptions(
+                cacheControl: '3600', 
+                upsert: true,
+                contentType: 'image/$fileExt' // Penting untuk Web agar gambar bisa dibuka di browser
+            )
+          );
       
+      // Ambil URL Publik
       final publicUrl = _supabase.storage
           .from('profile_images')
           .getPublicUrl(fileName);
           
       return publicUrl;
     } catch (e) {
-      print("Error uploading image: $e");
-      return null;
+      print("Detailed Upload Error: $e"); 
+      throw Exception("Upload Error: $e");
     }
   }
 }

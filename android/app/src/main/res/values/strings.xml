@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">upih_pet_grooming</string>
+    <string name="google_maps_key" translatable="false">AIzaSyBZoz5jwUOZrVb2jEi1oFmLfd_sDYDEfdQ</string>
+</resources>

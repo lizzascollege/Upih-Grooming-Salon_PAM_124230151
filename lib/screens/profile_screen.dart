@@ -109,33 +109,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showFeedbackDialog(BuildContext context) {
+  void _showFeedbackDialog(BuildContext context){
+    const String staticFeedbackContent = "Selama saya mengerjakan tugas ini, saya merasa hari dalam satu minggu tidak lagi berjumlah tujuh, kadang terasa cuma 1 hari saja untuk mengerjakan tugas. Saya belajar banyak, bukan hanya tentang bagaimana membuat aplikasi, tetapi juga bagaimana mengelola rasa panik secara professional, sambil tetap mempertanyakan pilihan hidup dengan slaay~~. Meski sering terasa seperti sedang mengikuti bootcamp developer dalam satu semester, pengalaman ini pada akhirnya membuka mata saya bahwa dunia IT sepertinya bukan dunia saya. Walaupun aplikasi yang saya buat masih sederhana dibandingkan teman-teman lain, pekerjaan ini saya selesaikan dengan sisa tenaga, kreativitas, dan rasa tanggung jawab yang tersisa. Semoga ke depannya pak bagus bisa terus mengajar sambal bercanda seperti sekarang, tapi kalau bisa—deadlinenya ikut bercanda juga. Terimakasih banyak pak, semoga kita tidak bertemu tahun depan.";
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder:(context) {
         return AlertDialog(
           title: Text("Lesson Feedback"),
-          content: TextField(
-            maxLines: 5,
-            decoration: InputDecoration(
-              hintText: "Write your feedback here...",
-              border: OutlineInputBorder(),
-              filled: false,
+          content: SingleChildScrollView(
+            child: Text(
+              staticFeedbackContent,
+              style: TextStyle(fontSize: 16),
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Thank you for your feedback!")),
-                );
-              },
-              child: Text("Submit"),
+            TextButton(onPressed: () => Navigator.of(context).pop(),
+            child: Text("Close"),
             ),
           ],
         );

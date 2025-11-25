@@ -70,6 +70,24 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           
           final String paymentMethod = booking['payment_method'] ?? 'N/A';
           final String status = booking['status'] ?? 'Waiting';
+          
+          final String bookingTimezone = booking['display_timezone'] ?? 'WIB';
+          final String formattedTime = DateFormat('EEE, dd MMM yyyy • HH:mm').format(DateTime.parse(booking['booking_time'] ?? DateTime.now().toIso8601String()));
+          final String displayTime = '$formattedTime $bookingTimezone';
+          
+          String displayPrice;
+          if (booking['display_price'] != null) {
+            displayPrice = booking['display_price'];
+          } else {
+            final dynamic rawPrice = booking['total_price'];
+            num priceAsNum = 0;
+            if (rawPrice is num) {
+              priceAsNum = rawPrice;
+            } else if (rawPrice is String) {
+              priceAsNum = num.tryParse(rawPrice) ?? 0;
+            }
+            displayPrice = priceFormat.format(priceAsNum);
+          }
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
@@ -128,7 +146,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                                 _buildDetailRow(
                                   Icons.calendar_today, 
                                   "Schedule", 
-                                  DateFormat('EEE, dd MMM yyyy • HH:mm').format(DateTime.parse(booking['booking_time'] ?? DateTime.now().toIso8601String()))
+                                  displayTime
                                 ),
                               ],
                             ),
@@ -147,7 +165,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                               children: [
                                 _buildDetailRow(Icons.credit_card, "Payment Method", paymentMethod),
                                 Divider(color: AppColors.lightGrey),
-                                _buildDetailRow(Icons.sell, "Total Price", priceFormat.format(booking['total_price'] ?? 0)),
+                                _buildDetailRow(Icons.sell, "Total Price", displayPrice),
                               ],
                             ),
                           ),
@@ -159,7 +177,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 ),
                 SizedBox(height: 16),
                 
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

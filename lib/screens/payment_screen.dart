@@ -11,6 +11,7 @@ class PaymentScreen extends StatefulWidget {
   final Map<String, dynamic> service;
   final PetModel pet;
   final DateTime bookingTime;
+  final String bookingTimezone;
 
   const PaymentScreen({
     super.key,
@@ -18,6 +19,7 @@ class PaymentScreen extends StatefulWidget {
     required this.service,
     required this.pet,
     required this.bookingTime,
+    required this.bookingTimezone,
   });
 
   @override
@@ -61,15 +63,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
   ];
 
   late String _paymentMethod;
+  late String _formattedPrice;
 
   @override
   void initState() {
     super.initState();
     _paymentMethod = _paymentOptions[0]['name'];
+    
+    _formattedPrice = widget.service['formatted_price'] ?? 
+      NumberFormat.currency(
+        locale: 'id_ID',
+        symbol: 'Rp ',
+        decimalDigits: 0,
+      ).format(widget.service['price']);
   }
 
   Future<void> _processBooking() async {
-    // Validasi waktu booking tidak di masa lalu
     if (widget.bookingTime.isBefore(DateTime.now())) {
       _showErrorDialog('Booking time cannot be in the past');
       return;
@@ -85,7 +94,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
         throw Exception('User not authenticated');
       }
 
-      // Insert booking to database
       final response = await supabase.from('bookings').insert({
         'user_id': userId,
         'salon_id': widget.salon['id'],
@@ -93,9 +101,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'pet_name': widget.pet.name,
         'pet_breed': widget.pet.breed,
         'booking_time': widget.bookingTime.toIso8601String(),
-        'total_price': widget.service['price'],
+        'total_price': (widget.service['price'] as double).round(),
         'status': _paymentMethod == 'Cash (Bayar di Kasir)' ? 'Pending Payment' : 'Confirmed',
         'payment_method': _paymentMethod,
+        'display_price': _formattedPrice,
+        'display_timezone': widget.bookingTimezone,
       }).select();
 
       if (response.isEmpty) {
@@ -104,14 +114,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       final bookingId = response[0]['id'] as int;
 
-      // 1. Show instant booking confirmation
       await NotificationService().showBookingConfirmation(
         petName: widget.pet.name,
         salonName: widget.salon['name'],
         bookingTime: widget.bookingTime,
       );
 
-      // 2. Schedule booking reminders (24h, 2h, 30min before)
       await NotificationService().scheduleBookingReminders(
         bookingId: bookingId,
         petName: widget.pet.name,
@@ -119,19 +127,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
         bookingTime: widget.bookingTime,
       );
 
-      // 3. Show payment success if not cash
       if (_paymentMethod != 'Cash (Bayar di Kasir)') {
         await NotificationService().showPaymentSuccess(
           petName: widget.pet.name,
-          amount: NumberFormat.currency(
-            locale: 'id_ID',
-            symbol: 'Rp ',
-            decimalDigits: 0,
-          ).format(widget.service['price']),
+          amount: _formattedPrice,
         );
       }
 
-      // 4. Schedule re-engagement notification (45 days later)
       final reengagementTime = widget.bookingTime.add(const Duration(days: 45));
       await NotificationService().scheduleNotification(
         id: bookingId + 100000,
@@ -142,10 +144,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
 
       if (mounted) {
-        // Show success dialog
         await _showSuccessDialog(bookingId);
 
-        // Navigate to booking detail
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => BookingDetailScreen(bookingId: bookingId),
@@ -253,12 +253,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final priceFormat = NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Payment & Confirmation"),
@@ -272,13 +266,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Order Summary Section
                   Text(
                     "Order Summary",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
                   ),
                   const SizedBox(height: 12),
                   Card(
@@ -312,8 +305,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           _buildDetailRow(
                             Icons.calendar_today,
                             "Schedule",
-                            DateFormat('EEEE, dd MMM yyyy • HH:mm')
-                                .format(widget.bookingTime),
+                            "${DateFormat('EEEE, dd MMM yyyy • HH:mm').format(widget.bookingTime)} ${widget.bookingTimezone}",
                           ),
                           Divider(color: AppColors.lightGrey),
                           _buildDetailRow(
@@ -326,14 +318,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // Payment Method Section
                   Text(
                     "Payment Method",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
                   ),
                   const SizedBox(height: 12),
                   ListView.separated(
@@ -405,8 +395,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ),
           ),
-
-          // Bottom Section - Price & Button
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -423,7 +411,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Total Price
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -445,7 +432,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              priceFormat.format(widget.service['price']),
+                              _formattedPrice,
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -463,8 +450,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Confirm Button
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -547,9 +532,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 Text(
                   value,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
+                      ),
                 ),
               ],
             ),
