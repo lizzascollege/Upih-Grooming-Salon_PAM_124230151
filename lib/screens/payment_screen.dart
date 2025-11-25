@@ -31,26 +31,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   final List<Map<String, dynamic>> _paymentOptions = [
     {
-      'name': 'BCA Virtual Account',
-      'subtitle': 'Auto-debit (simulasi)',
+      'name': 'E-Wallet',
+      'subtitle': 'Shopeepay, OVO, Dana, Gopay',
       'icon': Icons.account_balance,
       'color': Color(0xFF0066AE),
     },
     {
       'name': 'QRIS',
-      'subtitle': 'Scan to pay (simulasi)',
+      'subtitle': 'Scan to pay',
       'icon': Icons.qr_code_scanner,
       'color': Color(0xFFFF6B6B),
     },
     {
       'name': 'Transfer Bank',
-      'subtitle': 'BCA / Mandiri / BNI (simulasi)',
+      'subtitle': 'BCA / Mandiri / BNI/ BRI',
       'icon': Icons.local_atm,
       'color': Color(0xFF4ECDC4),
     },
     {
       'name': 'Kartu Kredit',
-      'subtitle': 'Visa / Mastercard (simulasi)',
+      'subtitle': 'Visa / Mastercard',
       'icon': Icons.credit_card,
       'color': Color(0xFF95E1D3),
     },

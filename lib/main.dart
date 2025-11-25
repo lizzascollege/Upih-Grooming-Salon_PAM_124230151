@@ -22,7 +22,6 @@ void main() async {
       debugPrint('🚨 Meminta izin notifikasi...');
       await Permission.notification.request();
     }
-    // Cek status setelah request (Opsional, untuk debug)
     status = await Permission.notification.status;
     if (status.isGranted) {
       debugPrint('✅ Izin Notifikasi Diberikan!');

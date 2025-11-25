@@ -1,4 +1,3 @@
-// lib/services/api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -128,14 +127,11 @@ class ApiService {
         throw Exception("User belum login");
       }
 
-      // Ambil bytes data gambar (Universal: Web & Mobile bisa baca bytes)
       final bytes = await imageFile.readAsBytes();
 
-      // Ambil ekstensi file
       final fileExt = imageFile.name.split('.').last;
       final fileName = '$userId/profile.$fileExt';
       
-      // Upload menggunakan uploadBinary (Bukan upload biasa)
       await _supabase.storage
           .from('profile_images') 
           .uploadBinary(
@@ -144,11 +140,10 @@ class ApiService {
             fileOptions: FileOptions(
                 cacheControl: '3600', 
                 upsert: true,
-                contentType: 'image/$fileExt' // Penting untuk Web agar gambar bisa dibuka di browser
+                contentType: 'image/$fileExt' 
             )
           );
       
-      // Ambil URL Publik
       final publicUrl = _supabase.storage
           .from('profile_images')
           .getPublicUrl(fileName);
